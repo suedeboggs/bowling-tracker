@@ -189,6 +189,56 @@ body {
   border-color: var(--accent);
 }
 
+/* ─── Location Autocomplete ──────────────────────────── */
+
+.field-location-wrap {
+  position: relative;
+}
+
+.location-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.location-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.location-suggestion:last-child {
+  border-bottom: none;
+}
+
+.location-suggestion:active {
+  background: var(--surface-alt);
+}
+
+.location-suggestion-icon {
+  color: var(--text-3);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.location-suggestion-text {
+  font-size: 15px;
+  color: var(--text-1);
+  font-family: var(--font-body);
+}
+
 /* ─── Toggle ─────────────────────────────────────────── */
 
 .toggle-row {

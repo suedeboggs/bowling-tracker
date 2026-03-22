@@ -55,7 +55,10 @@
 
     <div class="field">
       <label for="field-location">Location</label>
-      <input type="text" id="field-location" placeholder="Where are you bowling?" autocomplete="off" autocapitalize="words">
+      <div class="field-location-wrap">
+        <input type="text" id="field-location" placeholder="Where are you bowling?" autocomplete="off" autocapitalize="words">
+        <div class="location-suggestions" id="location-suggestions" style="display:none"></div>
+      </div>
     </div>
 
     <div class="field">
@@ -317,6 +320,7 @@ function saveGame() {
   };
 
   DB.save(game);
+  Locations.add(game.location); // save to recents
   DB.clearDraft();
   resetForm();
   renderTodayGames();
@@ -423,17 +427,82 @@ function buildGameCard(g) {
     </div>`;
 }
 
+// ── Location Autocomplete ──────────────────────────────────────────────────
+
+(function () {
+  const input   = () => document.getElementById('field-location');
+  const dropdown = () => document.getElementById('location-suggestions');
+
+  function showSuggestions(query) {
+    const results = Locations.search(query);
+    const el = dropdown();
+    if (!results.length) { el.style.display = 'none'; return; }
+
+    el.innerHTML = results.map(loc => `
+      <div class="location-suggestion" data-loc="${escHtml(loc)}">
+        <span class="location-suggestion-icon">↩</span>
+        <span class="location-suggestion-text">${escHtml(loc)}</span>
+      </div>`).join('');
+
+    el.style.display = 'block';
+
+    el.querySelectorAll('.location-suggestion').forEach(item => {
+      // touchstart for snappy iOS response
+      item.addEventListener('touchstart', () => {
+        input().value = item.dataset.loc;
+        el.style.display = 'none';
+        persistDraft();
+      }, { passive: true });
+      item.addEventListener('mousedown', e => {
+        e.preventDefault(); // prevent blur before click
+        input().value = item.dataset.loc;
+        el.style.display = 'none';
+        persistDraft();
+      });
+    });
+  }
+
+  function initAutocomplete() {
+    const inp = input();
+
+    // Show recents on focus
+    inp.addEventListener('focus', () => showSuggestions(inp.value));
+
+    // Filter as user types
+    inp.addEventListener('input', () => {
+      showSuggestions(inp.value);
+      persistDraft();
+    });
+
+    // Hide on blur (small delay so tap-to-select fires first)
+    inp.addEventListener('blur', () => {
+      setTimeout(() => { dropdown().style.display = 'none'; }, 150);
+    });
+
+    // Close on outside tap
+    document.addEventListener('touchstart', e => {
+      if (!e.target.closest('.field-location-wrap')) {
+        dropdown().style.display = 'none';
+      }
+    }, { passive: true });
+  }
+
+  // Expose so saveGame() can call it after we have the final value
+  window._initAutocomplete = initAutocomplete;
+})();
+
 // ── Init ───────────────────────────────────────────────────────────────────
 
 function init() {
   document.getElementById('field-date').value = todayISO();
   restoreDraft();
 
-  ['field-date', 'field-location', 'field-score'].forEach(id => {
+  ['field-date', 'field-score'].forEach(id => {
     document.getElementById(id).addEventListener('input', persistDraft);
   });
   document.getElementById('field-league').addEventListener('change', persistDraft);
 
+  window._initAutocomplete();
   renderTodayGames();
 }
 

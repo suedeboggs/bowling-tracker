@@ -3,8 +3,9 @@
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'strike_v1_games';
-const DRAFT_KEY   = 'strike_v1_draft';
+const STORAGE_KEY   = 'strike_v1_games';
+const DRAFT_KEY     = 'strike_v1_draft';
+const LOCATIONS_KEY = 'strike_v1_locations';
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,35 @@ const DB = {
 
   clearDraft() {
     localStorage.removeItem(DRAFT_KEY);
+  }
+};
+
+// ─── Recent Locations ─────────────────────────────────────────────────────────
+
+const Locations = {
+  getAll() {
+    try {
+      return JSON.parse(localStorage.getItem(LOCATIONS_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  // Add a location to the top of the recents list (deduped, max 15)
+  add(name) {
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    const locs = this.getAll().filter(l => l.toLowerCase() !== trimmed.toLowerCase());
+    locs.unshift(trimmed);
+    localStorage.setItem(LOCATIONS_KEY, JSON.stringify(locs.slice(0, 15)));
+  },
+
+  // Return locations that match the query (empty query = return all)
+  search(query) {
+    const all = this.getAll();
+    if (!query || !query.trim()) return all.slice(0, 6);
+    const q = query.toLowerCase();
+    return all.filter(l => l.toLowerCase().includes(q)).slice(0, 6);
   }
 };
 
