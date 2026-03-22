@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <!-- PWA / iOS home screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Strike">
+  <meta name="theme-color" content="#FDF8EE">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./style.css">
+  <title>Stats — Strike</title>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="app-header-top">
+    <a href="./index.html" class="nav-link">← Track</a>
+    <span class="app-title">
+      <svg width="22" height="22" viewBox="0 0 28 28" fill="none" stroke="#383838" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+        <circle cx="14" cy="14" r="11.5" fill="white" stroke-width="2.2"/>
+        <circle cx="11" cy="11" r="2"    fill="#383838" stroke="none"/>
+        <circle cx="17" cy="11" r="2"    fill="#383838" stroke="none"/>
+        <circle cx="14" cy="17" r="2"    fill="#383838" stroke="none"/>
+      </svg>
+      Stats
+    </span>
+    <span class="nav-link" style="color:transparent;pointer-events:none" aria-hidden="true">·</span>
+  </div>
+  <div class="dot-rule"></div>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <button class="filter-chip active" onclick="setFilter('all',    this)">All Games</button>
+    <button class="filter-chip"        onclick="setFilter('league', this)">League</button>
+    <button class="filter-chip"        onclick="setFilter('casual', this)">Casual</button>
+    <button class="filter-chip"        onclick="setFilter('30d',    this)">Last 30 Days</button>
+    <button class="filter-chip"        onclick="setFilter('7d',     this)">Last 7 Days</button>
+  </div>
+
+  <!-- Summary Stat Cards -->
+  <div class="stat-cards" id="stat-cards"><!-- JS --></div>
+
+  <!-- Score Trend Chart -->
+  <div class="chart-container">
+    <div class="chart-title">Score Trend — Last 20 Games</div>
+    <canvas class="chart-canvas" id="score-chart"></canvas>
+  </div>
+
+  <!-- Breakdowns -->
+  <div class="card" id="breakdown-card">
+    <div class="card-title">Breakdowns</div>
+    <div id="breakdown-content"><!-- JS --></div>
+  </div>
+
+  <!-- Game History -->
+  <div class="stats-header-row">
+    <span class="stats-header-title" id="history-title">All Games</span>
+    <span class="stats-header-sub"   id="history-sub"></span>
+  </div>
+  <div id="history-list"><!-- JS --></div>
+
+</main>
+
+<div class="bottom-spacer"></div>
+
+<script src="./app.js"></script>
+<script>
+'use strict';
+
+// ── Filter State ───────────────────────────────────────────────────────────
+
+let currentFilter = 'all';
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function getFiltered() {
+  const all = DB.getAll();
+
+  function cutoffISO(days) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  switch (currentFilter) {
+    case 'league': return all.filter(g => g.isLeague);
+    case 'casual': return all.filter(g => !g.isLeague);
+    case '30d':    return all.filter(g => g.date >= cutoffISO(30));
+    case '7d':     return all.filter(g => g.date >= cutoffISO(7));
+    default:       return all;
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+
+function render() {
+  const games = getFiltered();
+  renderSummary(games);
+  renderChart(games);
+  renderBreakdowns(games);
+  renderHistory(games);
+}
+
+// ── Summary Cards ──────────────────────────────────────────────────────────
+
+function renderSummary(games) {
+  const scored  = games.filter(g => g.score !== null);
+  const scores  = scored.map(g => g.score);
+  const n       = games.length;
+
+  const totalGames   = n;
+  const avgScore     = scores.length ? Math.round(avg(scores))               : '—';
+  const bestScore    = scores.length ? Math.max(...scores)                   : '—';
+  const worstScore   = scores.length ? Math.min(...scores)                   : '—';
+  const avgStrikes   = n ? avg(games.map(g => g.strikes)).toFixed(1)         : '—';
+  const avgSpares    = n ? avg(games.map(g => g.spares)).toFixed(1)          : '—';
+  const totalDrinks  = games.reduce((s, g) => s + (g.drinks || 0), 0);
+  const drinksEffect = calcDrinksEffect(games);
+
+  document.getElementById('stat-cards').innerHTML = `
+    ${statCard(totalGames,   'Games Played')}
+    ${statCard(avgScore,     'Avg Score')}
+    ${statCard(bestScore,    'Best Score')}
+    ${statCard(worstScore,   'Worst Score')}
+    ${statCard(avgStrikes,   'Avg Strikes')}
+    ${statCard(avgSpares,    'Avg Spares')}
+    ${statCard(totalDrinks,  'Total Drinks')}
+    ${statCard(drinksEffect, 'Drinks Effect', true)}
+  `;
+}
+
+function statCard(value, label, isDrinksEffect) {
+  let cls = '';
+  if (isDrinksEffect && typeof value === 'string' && value !== '—') {
+    cls = value.startsWith('+') ? ' effect-positive' : ' effect-negative';
+  }
+  return `
+    <div class="stat-card">
+      <div class="stat-card-value${cls}">${value}</div>
+      <div class="stat-card-label">${label}</div>
+    </div>`;
+}
+
+function calcDrinksEffect(games) {
+  const scored = games.filter(g => g.score !== null && typeof g.drinks === 'number');
+  if (scored.length < 4) return '—';
+  const sober    = scored.filter(g => g.drinks === 0);
+  const drinking = scored.filter(g => g.drinks > 0);
+  if (!sober.length || !drinking.length) return '—';
+  const diff = Math.round(avg(drinking.map(g => g.score)) - avg(sober.map(g => g.score)));
+  return diff >= 0 ? `+${diff}` : `${diff}`;
+}
+
+// ── Score Trend Chart ──────────────────────────────────────────────────────
+
+function renderChart(games) {
+  const canvas = document.getElementById('score-chart');
+  if (!canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const cw  = canvas.parentElement.clientWidth - 28;
+  const ch  = 110;
+
+  canvas.width  = cw * dpr;
+  canvas.height = ch * dpr;
+  canvas.style.width  = cw + 'px';
+  canvas.style.height = ch + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Take last 20 scored games, oldest → newest
+  const scored = [...games]
+    .filter(g => g.score !== null)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.savedAt - b.savedAt)
+    .slice(-20);
+
+  if (scored.length < 2) {
+    ctx.fillStyle = '#A07858';
+    ctx.font = `13px 'Oswald', 'Impact', Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PLAY MORE GAMES TO SEE YOUR TREND', cw / 2, ch / 2);
+    return;
+  }
+
+  const scores = scored.map(g => g.score);
+  const minS   = Math.min(...scores);
+  const maxS   = Math.max(...scores);
+  const range  = maxS - minS || 20;
+
+  const pad = { top: 8, right: 8, bottom: 26, left: 34 };
+  const W   = cw - pad.left - pad.right;
+  const H   = ch - pad.top  - pad.bottom;
+
+  const xOf = i => pad.left + (i / (scores.length - 1)) * W;
+  const yOf = s => pad.top  + H - ((s - minS) / range) * H;
+
+  // Y axis grid lines
+  [0, 0.5, 1].forEach(t => {
+    const y   = pad.top + H * (1 - t);
+    const val = Math.round(minS + t * range);
+
+    ctx.strokeStyle = '#D9BF8A';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(cw - pad.right, y);
+    ctx.stroke();
+
+    ctx.fillStyle    = '#A07858';
+    ctx.font         = `10px 'Oswald', Arial, sans-serif`;
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(val, pad.left - 4, y);
+  });
+
+  // Filled area
+  ctx.beginPath();
+  scores.forEach((s, i) => {
+    i === 0 ? ctx.moveTo(xOf(i), yOf(s)) : ctx.lineTo(xOf(i), yOf(s));
+  });
+  ctx.lineTo(xOf(scores.length - 1), pad.top + H);
+  ctx.lineTo(pad.left, pad.top + H);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(201,75,44,0.12)';
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#C94B2C';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+  scores.forEach((s, i) => {
+    i === 0 ? ctx.moveTo(xOf(i), yOf(s)) : ctx.lineTo(xOf(i), yOf(s));
+  });
+  ctx.stroke();
+
+  // Data point dots
+  scores.forEach((s, i) => {
+    ctx.beginPath();
+    ctx.arc(xOf(i), yOf(s), 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#C94B2C';
+    ctx.fill();
+    ctx.strokeStyle = '#FDF8EE';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Date labels
+  ctx.fillStyle    = '#A07858';
+  ctx.font         = `10px 'Oswald', Arial, sans-serif`;
+  ctx.textBaseline = 'bottom';
+  ctx.textAlign    = 'left';
+  ctx.fillText(scored[0].date.slice(5), pad.left, ch - 2);
+  ctx.textAlign = 'right';
+  ctx.fillText(scored[scored.length - 1].date.slice(5), cw - pad.right, ch - 2);
+}
+
+// ── Breakdowns ─────────────────────────────────────────────────────────────
+
+function renderBreakdowns(games) {
+  const n = games.length || 1;
+
+  const league = games.filter(g => g.isLeague);
+  const casual = games.filter(g => !g.isLeague);
+  const lScores = league.filter(g => g.score !== null).map(g => g.score);
+  const cScores = casual.filter(g => g.score !== null).map(g => g.score);
+
+  // Top locations by games played
+  const locMap = {};
+  games.forEach(g => {
+    const loc = g.location || 'Unknown Lanes';
+    if (!locMap[loc]) locMap[loc] = { count: 0, scores: [] };
+    locMap[loc].count++;
+    if (g.score !== null) locMap[loc].scores.push(g.score);
+  });
+  const locs = Object.entries(locMap)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5);
+  const maxLocCount = locs[0]?.[1].count || 1;
+
+  function breakdownItem(name, count, scores, maxCount) {
+    const pct    = Math.round((count / maxCount) * 100);
+    const avgStr = scores.length
+      ? `${count} game${count !== 1 ? 's' : ''} · avg ${Math.round(avg(scores))}`
+      : `${count} game${count !== 1 ? 's' : ''}`;
+    return `
+      <div class="breakdown-item">
+        <div class="breakdown-header">
+          <span class="breakdown-name">${escHtml(name)}</span>
+          <span class="breakdown-meta">${avgStr}</span>
+        </div>
+        <div class="breakdown-track">
+          <div class="breakdown-fill" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('breakdown-content').innerHTML = `
+    ${breakdownItem('League', league.length, lScores, n)}
+    ${breakdownItem('Casual', casual.length, cScores, n)}
+    ${locs.map(([loc, d]) => breakdownItem(loc, d.count, d.scores, maxLocCount)).join('')}
+  `;
+}
+
+// ── Game History ───────────────────────────────────────────────────────────
+
+function renderHistory(games) {
+  const container = document.getElementById('history-list');
+  const n = games.length;
+
+  document.getElementById('history-title').textContent =
+    currentFilter === 'all'    ? 'All Games'    :
+    currentFilter === 'league' ? 'League Games' :
+    currentFilter === 'casual' ? 'Casual Games' :
+    currentFilter === '30d'    ? 'Last 30 Days' :
+    'Last 7 Days';
+
+  document.getElementById('history-sub').textContent =
+    n ? `${n} game${n !== 1 ? 's' : ''}` : '';
+
+  if (!n) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg width="52" height="72" viewBox="0 0 32 44" fill="none" stroke="#383838" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 2 C20.5 2 23 5.5 23 9 C23 12.5 21 14.5 19 16 C22.5 19.5 25 25.5 25 31.5 C25 38 21.5 42 16 42 C10.5 42 7 38 7 31.5 C7 25.5 9.5 19.5 13 16 C11 14.5 9 12.5 9 9 C9 5.5 11.5 2 16 2 Z" fill="white" stroke-width="2.3"/>
+              <line x1="9"   y1="32" x2="23"   y2="32" stroke-width="1.2"/>
+              <line x1="8.5" y1="37" x2="23.5" y2="37" stroke-width="1.2"/>
+            </svg>
+          </div>
+        <div class="empty-state-text">No games recorded yet.<br>Start tracking!</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = games.map(g => buildGameCard(g)).join('');
+}
+
+function buildGameCard(g) {
+  const scoreDisplay = g.score !== null ? g.score : '—';
+  const scoreCls     = g.score !== null ? '' : ' no-score';
+
+  return `
+    <div class="game-item">
+      <div class="game-item-top">
+        <div class="game-meta">
+          <div class="game-location">${escHtml(g.location)}</div>
+          <div class="game-date">${formatDate(g.date)}</div>
+        </div>
+        <div class="game-score-wrap">
+          <div class="game-score${scoreCls}">${scoreDisplay}</div>
+          <button class="delete-btn" onclick="deleteGame('${g.id}')" aria-label="Delete game">×</button>
+        </div>
+      </div>
+      <div class="game-tags">
+        ${g.isLeague
+          ? '<span class="tag league">League</span>'
+          : '<span class="tag">Casual</span>'}
+      </div>
+      <div class="game-stats-row">
+        <div class="game-stat">
+          <div class="game-stat-value">${g.strikes}</div>
+          <div class="game-stat-label">Strikes</div>
+        </div>
+        <div class="game-stat">
+          <div class="game-stat-value">${g.spares}</div>
+          <div class="game-stat-label">Spares</div>
+        </div>
+        <div class="game-stat">
+          <div class="game-stat-value">${g.gutterballs}</div>
+          <div class="game-stat-label">Gutters</div>
+        </div>
+        <div class="game-stat">
+          <div class="game-stat-value">${g.drinks}</div>
+          <div class="game-stat-label">Drinks</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+
+function deleteGame(id) {
+  if (confirm('Delete this game?')) {
+    DB.delete(id);
+    render();
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => renderChart(getFiltered()), 100);
+});
+
+render();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <!-- PWA / iOS home screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Strike">
+  <meta name="theme-color" content="#FDF8EE">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./style.css">
+  <title>Strike — Bowling Tracker</title>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="app-header-top">
+    <span class="nav-link" style="color:transparent;pointer-events:none" aria-hidden="true">·</span>
+    <span class="app-title">
+      <!-- Bowling ball mark -->
+      <svg width="22" height="22" viewBox="0 0 28 28" fill="none" stroke="#383838" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+        <circle cx="14" cy="14" r="11.5" fill="white" stroke-width="2.2"/>
+        <circle cx="11" cy="11" r="2"    fill="#383838" stroke="none"/>
+        <circle cx="17" cy="11" r="2"    fill="#383838" stroke="none"/>
+        <circle cx="14" cy="17" r="2"    fill="#383838" stroke="none"/>
+      </svg>
+      Strike
+    </span>
+    <a href="./stats.html" class="nav-link">Stats →</a>
+  </div>
+  <div class="dot-rule"></div>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main>
+
+  <!-- Game Setup -->
+  <div class="card">
+    <div class="card-title">Game Setup</div>
+
+    <div class="field">
+      <label for="field-date">Date</label>
+      <input type="date" id="field-date" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="field-location">Location</label>
+      <input type="text" id="field-location" placeholder="Where are you bowling?" autocomplete="off" autocapitalize="words">
+    </div>
+
+    <div class="field">
+      <label class="toggle-row" for="field-league">
+        <span class="toggle-row-label">League Game</span>
+        <span class="toggle">
+          <input type="checkbox" id="field-league">
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Counter Tiles -->
+  <div class="counter-grid">
+
+    <!-- STRIKES -->
+    <div class="counter-tile">
+      <div class="counter-tile-icon" aria-hidden="true">
+        <!-- Single bowling pin -->
+        <svg width="22" height="30" viewBox="0 0 32 44" fill="none" stroke="#383838" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <!-- Pin body: round head, narrow neck, wide body, stable base -->
+          <path d="M16 2
+            C20.5 2 23 5.5 23 9
+            C23 12.5 21 14.5 19 16
+            C22.5 19.5 25 25.5 25 31.5
+            C25 38 21.5 42 16 42
+            C10.5 42 7 38 7 31.5
+            C7 25.5 9.5 19.5 13 16
+            C11 14.5 9 12.5 9 9
+            C9 5.5 11.5 2 16 2 Z"
+            fill="white" stroke-width="2.3"/>
+          <!-- Horizontal shading lines on lower body (vintage texture) -->
+          <line x1="9"   y1="32" x2="23"  y2="32" stroke-width="1.1"/>
+          <line x1="8.5" y1="37" x2="23.5" y2="37" stroke-width="1.1"/>
+        </svg>
+      </div>
+      <div class="counter-tile-label">Strikes</div>
+      <div class="counter-tile-value" id="cnt-strikes">0</div>
+      <div class="counter-controls">
+        <button class="counter-btn minus" onclick="decr('strikes')" aria-label="Remove strike">−</button>
+        <button class="counter-btn plus"  onclick="incr('strikes')" aria-label="Add strike">+</button>
+      </div>
+    </div>
+
+    <!-- SPARES -->
+    <div class="counter-tile">
+      <div class="counter-tile-icon" aria-hidden="true">
+        <!-- Two pins side by side -->
+        <svg width="30" height="26" viewBox="0 0 44 36" fill="none" stroke="#383838" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <!-- Left pin -->
+          <path d="M11 2
+            C14 2 15.5 4.5 15.5 7
+            C15.5 9.5 14 11 12.5 12
+            C14.5 14.5 16 18 16 21.5
+            C16 25.5 14 28 11 28
+            C8 28 6 25.5 6 21.5
+            C6 18 7.5 14.5 9.5 12
+            C8 11 6.5 9.5 6.5 7
+            C6.5 4.5 8 2 11 2 Z"
+            fill="white" stroke-width="2"/>
+          <!-- Right pin -->
+          <path d="M33 2
+            C36 2 37.5 4.5 37.5 7
+            C37.5 9.5 36 11 34.5 12
+            C36.5 14.5 38 18 38 21.5
+            C38 25.5 36 28 33 28
+            C30 28 28 25.5 28 21.5
+            C28 18 29.5 14.5 31.5 12
+            C30 11 28.5 9.5 28.5 7
+            C28.5 4.5 30 2 33 2 Z"
+            fill="white" stroke-width="2"/>
+          <!-- Shading lines left pin -->
+          <line x1="6.5" y1="22" x2="15.5" y2="22" stroke-width="1"/>
+          <line x1="6.5" y1="25" x2="15.5" y2="25" stroke-width="1"/>
+          <!-- Shading lines right pin -->
+          <line x1="28.5" y1="22" x2="37.5" y2="22" stroke-width="1"/>
+          <line x1="28.5" y1="25" x2="37.5" y2="25" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="counter-tile-label">Spares</div>
+      <div class="counter-tile-value" id="cnt-spares">0</div>
+      <div class="counter-controls">
+        <button class="counter-btn minus" onclick="decr('spares')" aria-label="Remove spare">−</button>
+        <button class="counter-btn plus"  onclick="incr('spares')" aria-label="Add spare">+</button>
+      </div>
+    </div>
+
+    <!-- GUTTERBALLS -->
+    <div class="counter-tile">
+      <div class="counter-tile-icon" aria-hidden="true">
+        <!-- Bowling ball with sideways motion lines (going into the gutter) -->
+        <svg width="30" height="26" viewBox="0 0 44 36" fill="none" stroke="#383838" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <!-- Motion lines (left side — ball veered sideways) -->
+          <line x1="2"  y1="10" x2="12" y2="10" stroke-width="1.8"/>
+          <line x1="2"  y1="17" x2="10" y2="17" stroke-width="1.8"/>
+          <line x1="2"  y1="24" x2="12" y2="24" stroke-width="1.8"/>
+          <!-- Ball -->
+          <circle cx="28" cy="18" r="13" fill="white" stroke-width="2.3"/>
+          <!-- Finger holes (classic 3-hole bowling ball layout) -->
+          <circle cx="25" cy="13.5" r="2.5" fill="#383838" stroke="none"/>
+          <circle cx="31" cy="13.5" r="2.5" fill="#383838" stroke="none"/>
+          <circle cx="28" cy="20"   r="2.5" fill="#383838" stroke="none"/>
+        </svg>
+      </div>
+      <div class="counter-tile-label">Gutterballs</div>
+      <div class="counter-tile-value" id="cnt-gutterballs">0</div>
+      <div class="counter-controls">
+        <button class="counter-btn minus" onclick="decr('gutterballs')" aria-label="Remove gutterball">−</button>
+        <button class="counter-btn plus"  onclick="incr('gutterballs')" aria-label="Add gutterball">+</button>
+      </div>
+    </div>
+
+    <!-- DRINKS -->
+    <div class="counter-tile">
+      <div class="counter-tile-icon" aria-hidden="true">
+        <!-- Classic cocktail glass (martini style) with cherry — like Avondale's illustrations -->
+        <svg width="26" height="28" viewBox="0 0 36 40" fill="none" stroke="#383838" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <!-- Cherry stem (drawn first, behind glass) -->
+          <path d="M18 20 Q23 11 27 9" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <!-- Glass bowl: wide V shape -->
+          <path d="M2 4 L34 4 L18 24 Z" fill="white" stroke-width="2.3" stroke-linejoin="round"/>
+          <!-- Stem -->
+          <line x1="18" y1="24" x2="18" y2="35" stroke-width="2.3"/>
+          <!-- Base -->
+          <line x1="8" y1="35" x2="28" y2="35" stroke-width="2.3"/>
+          <!-- Liquid surface line inside bowl -->
+          <line x1="5"  y1="10" x2="31" y2="10" stroke-width="1.1"/>
+          <!-- Diagonal shading on lower half of bowl (vintage glass texture) -->
+          <line x1="5"  y1="14" x2="9"  y2="22" stroke-width="1"/>
+          <line x1="10" y1="12" x2="15" y2="22" stroke-width="1"/>
+          <line x1="16" y1="10" x2="18" y2="14" stroke-width="1"/>
+          <!-- Cherry (filled circle on rim) -->
+          <circle cx="27" cy="8" r="4" fill="#383838" stroke="none"/>
+        </svg>
+      </div>
+      <div class="counter-tile-label">Drinks</div>
+      <div class="counter-tile-value" id="cnt-drinks">0</div>
+      <div class="counter-controls">
+        <button class="counter-btn minus" onclick="decr('drinks')" aria-label="Remove drink">−</button>
+        <button class="counter-btn plus"  onclick="incr('drinks')" aria-label="Add drink">+</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Final Score -->
+  <div class="card">
+    <div class="card-title">Final Score</div>
+    <input
+      type="number"
+      class="score-input"
+      id="field-score"
+      placeholder="—"
+      min="0"
+      max="300"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      autocomplete="off"
+    >
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" id="save-btn" onclick="saveGame()">Save Game</button>
+    <button class="btn btn-ghost" onclick="resetForm()">Reset</button>
+  </div>
+
+  <!-- Today's Games -->
+  <div class="section-header">Today's Games</div>
+  <div id="games-list"></div>
+
+</main>
+
+<div class="bottom-spacer"></div>
+
+<script src="./app.js"></script>
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────────────────
+
+const counts = { strikes: 0, spares: 0, gutterballs: 0, drinks: 0 };
+
+// ── Counter Actions ────────────────────────────────────────────────────────
+
+function incr(key) {
+  counts[key]++;
+  document.getElementById('cnt-' + key).textContent = counts[key];
+  persistDraft();
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+function decr(key) {
+  if (counts[key] > 0) {
+    counts[key]--;
+    document.getElementById('cnt-' + key).textContent = counts[key];
+    persistDraft();
+  }
+}
+
+// ── Draft Persistence ──────────────────────────────────────────────────────
+// Keeps in-progress game alive if you briefly close the app or take a call
+
+function persistDraft() {
+  DB.saveDraft({
+    date:        document.getElementById('field-date').value,
+    location:    document.getElementById('field-location').value,
+    isLeague:    document.getElementById('field-league').checked,
+    score:       document.getElementById('field-score').value,
+    strikes:     counts.strikes,
+    spares:      counts.spares,
+    gutterballs: counts.gutterballs,
+    drinks:      counts.drinks,
+  });
+}
+
+function restoreDraft() {
+  const draft = DB.getDraft();
+  if (!draft) return;
+
+  if (draft.date)     document.getElementById('field-date').value     = draft.date;
+  if (draft.location) document.getElementById('field-location').value = draft.location;
+  if (draft.isLeague) document.getElementById('field-league').checked = draft.isLeague;
+  if (draft.score)    document.getElementById('field-score').value    = draft.score;
+
+  ['strikes', 'spares', 'gutterballs', 'drinks'].forEach(k => {
+    if (typeof draft[k] === 'number') {
+      counts[k] = draft[k];
+      document.getElementById('cnt-' + k).textContent = draft[k];
+    }
+  });
+}
+
+// ── Save Game ──────────────────────────────────────────────────────────────
+
+function saveGame() {
+  const date     = document.getElementById('field-date').value;
+  const location = document.getElementById('field-location').value.trim();
+  const scoreVal = document.getElementById('field-score').value;
+
+  if (!date) {
+    alert('Please enter a date for this game.');
+    return;
+  }
+
+  const game = {
+    id:          genId(),
+    date,
+    location:    location || 'Unknown Lanes',
+    isLeague:    document.getElementById('field-league').checked,
+    score:       scoreVal !== '' ? parseInt(scoreVal, 10) : null,
+    strikes:     counts.strikes,
+    spares:      counts.spares,
+    gutterballs: counts.gutterballs,
+    drinks:      counts.drinks,
+    savedAt:     Date.now(),
+  };
+
+  DB.save(game);
+  DB.clearDraft();
+  resetForm();
+  renderTodayGames();
+  flashSaved();
+}
+
+function flashSaved() {
+  const btn = document.getElementById('save-btn');
+  btn.textContent = '✓ Saved!';
+  btn.classList.add('saved');
+  setTimeout(() => {
+    btn.textContent = 'Save Game';
+    btn.classList.remove('saved');
+  }, 1600);
+}
+
+// ── Reset Form ─────────────────────────────────────────────────────────────
+
+function resetForm() {
+  ['strikes', 'spares', 'gutterballs', 'drinks'].forEach(k => {
+    counts[k] = 0;
+    document.getElementById('cnt-' + k).textContent = '0';
+  });
+  document.getElementById('field-score').value    = '';
+  document.getElementById('field-date').value     = todayISO();
+  document.getElementById('field-location').value = '';
+  document.getElementById('field-league').checked = false;
+  DB.clearDraft();
+}
+
+// ── Delete Game ────────────────────────────────────────────────────────────
+
+function deleteGame(id) {
+  if (confirm('Delete this game?')) {
+    DB.delete(id);
+    renderTodayGames();
+  }
+}
+
+// ── Render Today's Games ───────────────────────────────────────────────────
+
+function renderTodayGames() {
+  const container = document.getElementById('games-list');
+  const today     = todayISO();
+  const games     = DB.getAll().filter(g => g.date === today);
+
+  if (!games.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg width="52" height="72" viewBox="0 0 32 44" fill="none" stroke="#383838" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2 C20.5 2 23 5.5 23 9 C23 12.5 21 14.5 19 16 C22.5 19.5 25 25.5 25 31.5 C25 38 21.5 42 16 42 C10.5 42 7 38 7 31.5 C7 25.5 9.5 19.5 13 16 C11 14.5 9 12.5 9 9 C9 5.5 11.5 2 16 2 Z" fill="white" stroke-width="2.3"/>
+            <line x1="9"   y1="32" x2="23"   y2="32" stroke-width="1.2"/>
+            <line x1="8.5" y1="37" x2="23.5" y2="37" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div class="empty-state-text">No games yet today.<br>Start bowling!</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = games.map(g => buildGameCard(g)).join('');
+}
+
+function buildGameCard(g) {
+  const scoreDisplay = g.score !== null ? g.score : '—';
+  const scoreCls     = g.score !== null ? '' : ' no-score';
+
+  return `
+    <div class="game-item">
+      <div class="game-item-top">
+        <div class="game-meta">
+          <div class="game-location">${escHtml(g.location)}</div>
+          <div class="game-date">${formatDate(g.date)}</div>
+        </div>
+        <div class="game-score-wrap">
+          <div class="game-score${scoreCls}">${scoreDisplay}</div>
+          <button class="delete-btn" onclick="deleteGame('${g.id}')" aria-label="Delete game">×</button>
+        </div>
+      </div>
+      <div class="game-tags">
+        ${g.isLeague
+          ? '<span class="tag league">League</span>'
+          : '<span class="tag">Casual</span>'}
+      </div>
+      <div class="game-stats-row">
+        <div class="game-stat">
+          <div class="game-stat-value">${g.strikes}</div>
+          <div class="game-stat-label">Strikes</div>
+        </div>
+        <div class="game-stat">
+          <div class="game-stat-value">${g.spares}</div>
+          <div class="game-stat-label">Spares</div>
+        </div>
+        <div class="game-stat">
+          <div class="game-stat-value">${g.gutterballs}</div>
+          <div class="game-stat-label">Gutters</div>
+        </div>
+        <div class="game-stat">
+          <div class="game-stat-value">${g.drinks}</div>
+          <div class="game-stat-label">Drinks</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+function init() {
+  document.getElementById('field-date').value = todayISO();
+  restoreDraft();
+
+  ['field-date', 'field-location', 'field-score'].forEach(id => {
+    document.getElementById(id).addEventListener('input', persistDraft);
+  });
+  document.getElementById('field-league').addEventListener('change', persistDraft);
+
+  renderTodayGames();
+}
+
+init();
+</script>
+
+</body>
+</html>

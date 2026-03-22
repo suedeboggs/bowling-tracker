@@ -1,0 +1,18 @@
+{
+  "name": "Strike — Bowling Tracker",
+  "short_name": "Strike",
+  "description": "Track bowling scores, strikes, spares, and drinks.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FDF8EE",
+  "theme_color": "#FDF8EE",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
